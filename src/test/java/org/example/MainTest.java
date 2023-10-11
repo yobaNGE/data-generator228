@@ -14,8 +14,6 @@ import org.junit.Test;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
-
 public class MainTest {
     // Поля для доступа к базе данных
     private MongoClient mongoClient;
@@ -40,7 +38,7 @@ public class MainTest {
     private final String URI = "mongodb://localhost:27017";
     private final String DATABASE_NAME = "mydatabase";
     private final String COLLECTION_NAME = "books";
-    private final List<String> OWNER_LIST = Arrays.asList("Bob", "Mike", "Jake");
+    private final List<String> OWNER_LIST = List.of("Bob", "Mike", "Jake");
     private final Faker faker = new Faker();
     private final JsonWriterSettings jsonSettings = JsonWriterSettings.builder()
             .indent(true)
@@ -82,13 +80,17 @@ public class MainTest {
 
     @Test
     public void explainRequest() {
-        Document result = collection.find(BsonDocument.parse("{owner: 'Mike'}")).explain();
+        Document result = collection
+                .find(BsonDocument.parse("{owner: 'Mike'}"))
+                .explain();
         System.out.println(result.toJson(jsonSettings));
     }
 
     @Test
     public void request() {
-        FindIterable<Document> results = collection.find(BsonDocument.parse("{$expr : { $gt : [ { $strLenCP : ' $owner ' }, 4 ] } }")).limit(10);
+        FindIterable<Document> results = collection
+                .find(BsonDocument.parse("{$expr : { $gt : [ { $strLenCP : ' $owner ' }, 4 ] } }"))
+                .limit(10);
         for (Document result : results) {
             System.out.println(result.toJson(jsonSettings));
         }
@@ -98,19 +100,21 @@ public class MainTest {
     public void aggregationRequest() {
         List<Bson> pipeline = new ArrayList<>();
         pipeline.add(
-                BsonDocument.parse("{" +
-                        "    $bucket:" +
-                        "      {" +
-                        "        groupBy: '$owner'," +
-                        "        boundaries: ['Bob', 'Jake', 'Mike']," +
-                        "        default: 'Others'," +
-                        "        output: {" +
-                        "          count: {" +
-                        "            $sum: 1," +
-                        "          }," +
-                        "        }," +
-                        "      }," +
-                        "  },")
+            BsonDocument.parse("""
+                    {
+                        $bucket:
+                          {
+                            groupBy: '$owner',
+                            boundaries: ['Bob', 'Jake', 'Mike'],
+                            default: 'Others',
+                            output: {
+                              count: {
+                                $sum: 1,
+                              },
+                            },
+                          },
+                      },   
+                    """)
         );
         AggregateIterable<Document> results = collection.aggregate(pipeline);
         for (Document result : results) {
